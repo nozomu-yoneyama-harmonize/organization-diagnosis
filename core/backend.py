@@ -32,6 +32,11 @@ def get_quiz() -> dict[str, Any]:
 @lru_cache(maxsize=1)
 def _get_types() -> dict[str, Any]:
     return json.loads((DATA_DIR / "types.json").read_text(encoding="utf-8"))["types"]
+
+
+def get_types() -> dict[str, Any]:
+    """GET /api/v1/types 相当。16タイプの一覧（コードをキーにした dict）。"""
+    return _get_types()
 # ===== [BLOCK: DATA_LOADING] END =====
 
 

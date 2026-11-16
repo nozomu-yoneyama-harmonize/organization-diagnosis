@@ -40,10 +40,10 @@
 リクエスト:
 
 ```json
-{ "answers": { "Q01": 1, "Q02": 4, "Q40": 3 } }
+{ "answers": { "Q01": 1, "Q02": 4, "Q60": 3 } }
 ```
 
-`answers` には Q01〜Q40 の全問が必要です。値は 1〜5 の整数です。
+`answers` には Q01〜Q60 の全問が必要です。値は 1〜5 の整数です。
 
 レスポンス `201`:
 
@@ -57,8 +57,8 @@
   },
   "axes": [
     {
-      "id": "numeric", "name": "数値管理", "score": 42, "min": 10, "max": 50,
-      "threshold": 30, "side": "b", "code": "I", "position": 0.8,
+      "id": "numeric", "name": "数値管理", "score": 63, "min": 15, "max": 75,
+      "threshold": 45, "side": "b", "code": "I", "position": 0.8,
       "a": { "code": "D", "short": "データ", "full": "データ・定量" },
       "b": { "code": "I", "short": "直感", "full": "直感・経験" }
     }
@@ -69,7 +69,7 @@
 エラー `422`（未回答または範囲外）:
 
 ```json
-{ "error": "invalid_answers", "missing": ["Q40"], "invalid": [] }
+{ "error": "invalid_answers", "missing": ["Q60"], "invalid": [] }
 ```
 
 ### POST /api/v1/diagnoses/{id}/events

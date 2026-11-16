@@ -21,7 +21,8 @@ BOOKING_URL = "https://timerex.net/s/harmonize-inc/744bcdd8"
 # ===== [BLOCK: SESSION_STATE] START =====
 def init_state() -> None:
     defaults: dict[str, Any] = {
-        "phase": "quiz",
+        "phase": "intro",
+        "focus_type": None,
         "page": 0,
         "answers": {},
         "missing": [],
@@ -48,11 +49,49 @@ def restart() -> None:
     go("quiz")
 
 
+def open_from_query() -> None:
+    """結果画面のリンク（?view=types&type=XXXX）から開かれたときは一覧ページを表示する。"""
+    params = st.query_params
+    if params.get("view") == "types":
+        code = params.get("type")
+        st.session_state.phase = "types"
+        st.session_state.focus_type = code if code in backend.get_types() else None
+        st.query_params.clear()
+
+
 def store_answer(question_id: str) -> None:
     st.session_state.answers[question_id] = st.session_state[f"ans_{question_id}"]
     if question_id in st.session_state.missing:
         st.session_state.missing.remove(question_id)
 # ===== [BLOCK: SESSION_STATE] END =====
+
+
+# ===== [BLOCK: SCREEN_LANDING] START =====
+def render_landing() -> None:
+    st.html(ui.landing_hero())
+    with st.container(key="landing_actions"):
+        if st.button("診断をスタートする（無料）", type="primary", key="start", width="stretch"):
+            go("quiz")
+        if st.button("16タイプについて知る", key="about_types", width="stretch"):
+            st.session_state.focus_type = None
+            go("types")
+    st.html(ui.supervisor())
+    st.html(ui.scroll_script("#hz-none", "landing"), unsafe_allow_javascript=True)
+# ===== [BLOCK: SCREEN_LANDING] END =====
+
+
+# ===== [BLOCK: SCREEN_TYPES] START =====
+def render_types(quiz: dict[str, Any]) -> None:
+    focus = st.session_state.focus_type
+    st.html(ui.type_catalog(backend.get_types(), quiz["axes"], focus))
+    with st.container(key="types_actions"):
+        if st.button("診断をスタートする（無料）", type="primary", key="start_from_types", width="stretch"):
+            go("quiz")
+        if st.button("トップに戻る", key="to_top", type="tertiary", width="stretch"):
+            go("intro")
+    selector = f"#type-{focus}" if focus else "#hz-none"
+    st.html(ui.scroll_script(selector, f"types-{focus}"), unsafe_allow_javascript=True)
+# ===== [BLOCK: SCREEN_TYPES] END =====
 
 
 # ===== [BLOCK: SCREEN_QUIZ] START =====
@@ -159,12 +198,13 @@ def email_dialog(diagnosis: dict[str, Any]) -> None:
 
 
 # ===== [BLOCK: SCREEN_RESULT] START =====
-def render_result() -> None:
+def render_result(quiz: dict[str, Any]) -> None:
     diagnosis = st.session_state.diagnosis
     if diagnosis is None:
         go("quiz")
     st.html(ui.result_hero(diagnosis))
     st.html(ui.result_body(diagnosis))
+    st.html(ui.type_links(backend.get_types(), quiz["axes"], diagnosis["type"]["code"]))
     with st.container(key="next_band"):
         st.html(ui.result_next(diagnosis))
         st.link_button(
@@ -189,12 +229,17 @@ def render_result() -> None:
 # ===== [BLOCK: ROUTER] START =====
 def main() -> None:
     init_state()
+    open_from_query()
     quiz = backend.get_quiz()
     phase = st.session_state.phase
     if phase == "result":
-        render_result()
-    else:
+        render_result(quiz)
+    elif phase == "types":
+        render_types(quiz)
+    elif phase == "quiz":
         render_quiz(quiz)
+    else:
+        render_landing()
 
 
 main()

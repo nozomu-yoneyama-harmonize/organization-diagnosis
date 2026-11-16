@@ -13,9 +13,9 @@ def to_answers(values):
 
 
 # ===== [BLOCK: DATA_INTEGRITY] START =====
-def test_quiz_has_40_complete_questions():
+def test_quiz_has_60_complete_questions():
     quiz = backend.get_quiz()
-    assert [q["id"] for q in quiz["questions"]] == [f"Q{i:02d}" for i in range(1, 41)]
+    assert [q["id"] for q in quiz["questions"]] == [f"Q{i:02d}" for i in range(1, 61)]
     assert all(q["theme"] and q["a"] and q["b"] for q in quiz["questions"])
 
 
@@ -54,7 +54,7 @@ def test_invalid_answers_are_rejected(case):
 # ===== [BLOCK: BACKEND_PERSISTENCE] START =====
 def test_submit_event_and_lead_are_saved(tmp_path, monkeypatch):
     monkeypatch.setattr(storage, "DB_PATH", tmp_path / "test.db")
-    response = backend.submit_diagnosis(to_answers([1] * 40))
+    response = backend.submit_diagnosis(to_answers([1] * 60))
     assert response["type"]["code"] == "DHST"
     json.dumps(response)  # API にそのまま載せられること
 
@@ -72,7 +72,7 @@ def test_save_failure_still_returns_result(monkeypatch):
         raise OSError("disk full")
 
     monkeypatch.setattr(storage, "save_diagnosis", boom)
-    assert backend.submit_diagnosis(to_answers([5] * 40))["type"]["code"] == "IFPR"
+    assert backend.submit_diagnosis(to_answers([5] * 60))["type"]["code"] == "IFPR"
 # ===== [BLOCK: BACKEND_PERSISTENCE] END =====
 
 
@@ -83,7 +83,7 @@ SETTINGS = mailer.SmtpSettings("smtp.test", 587, "none", "", "", "info@example.c
 
 def make_diagnosis(tmp_path, monkeypatch):
     monkeypatch.setattr(storage, "DB_PATH", tmp_path / "test.db")
-    return backend.submit_diagnosis(to_answers([5] * 20 + [1] * 10 + [5] * 10))
+    return backend.submit_diagnosis(to_answers([5] * 30 + [1] * 15 + [5] * 15))
 
 
 def test_message_contains_result_and_booking_link(tmp_path, monkeypatch):
@@ -94,7 +94,7 @@ def test_message_contains_result_and_booking_link(tmp_path, monkeypatch):
     assert "IFSR型" in message["Subject"]
     assert message["To"] == "a@example.com"
     for body in (plain, html_body):
-        assert BOOKING in body and diagnosis["type"]["improvement"] in body and "50点" in body
+        assert BOOKING in body and diagnosis["type"]["improvement"] in body and "75点" in body
 
 
 def test_send_email_records_event_without_storing_address(tmp_path, monkeypatch):

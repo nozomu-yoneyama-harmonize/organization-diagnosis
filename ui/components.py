@@ -27,6 +27,85 @@ def logo(css_class: str = "hz-logo") -> str:
 # ===== [BLOCK: ASSET_LOADERS] END =====
 
 
+# ===== [BLOCK: LANDING_PARTS] START =====
+def landing_hero() -> str:
+    return (
+        f'<div class="hz-landing">{logo("hz-logo hz-logo--small")}'
+        '<p class="hz-landing__pain">売上は上がっているのに、なぜか現場が疲弊している。</p>'
+        "<h1>「自社の組織ってどんな状態？」がわかる<span>16タイプ診断</span></h1>"
+        '<p class="hz-landing__sub">数値管理、組織、業務フロー、会議コミュニケーションの4軸から、'
+        "貴社の状態をMBTI風の16タイプに分類。痛みを伴う「組織の限界」と、次の一手（処方箋）を明らかにします。</p>"
+        '<p class="hz-landing__meta"><span>全60問</span><span>所要時間：約8〜10分</span></p>'
+        '<section class="hz-gains"><h2>✨ この診断でわかること・得られるもの</h2><ul>'
+        "<li>16タイプ分類で、自社の「強み」と「見えない弱点」が丸裸に。</li>"
+        "<li>明日から使える「具体的な改善アクションプラン」がわかる。</li>"
+        "</ul></section>"
+        '<aside class="hz-gift"><b>🎁 特典</b><p>診断完了後、希望者には専門家（外部COO）による'
+        "「無料オンライン壁打ち（60分）」をプレゼント。</p></aside>"
+        "</div>"
+    )
+
+
+def supervisor() -> str:
+    return (
+        '<p class="hz-supervisor"><span>監修</span>Harmonize 代表 米山 望'
+        "<small>現場主義で組織変革に伴走する専門家</small></p>"
+    )
+# ===== [BLOCK: LANDING_PARTS] END =====
+
+
+# ===== [BLOCK: TYPE_CATALOG] START =====
+def _code_letters(code: str, axes: list[dict[str, Any]]) -> str:
+    """タイプコードを1文字ずつ、左側(a)は紺・右側(b)はティールで描く。"""
+    return "".join(
+        f'<b class="side-{"a" if letter == axis["a"]["code"] else "b"}">{letter}</b>'
+        for letter, axis in zip(code, axes)
+    )
+
+
+def type_catalog(types: dict[str, Any], axes: list[dict[str, Any]], focus: str | None) -> str:
+    legend = "".join(
+        f'<li><b class="side-a">{axis["a"]["code"]}</b>{escape(axis["a"]["short"])}'
+        f'<i>／</i><b class="side-b">{axis["b"]["code"]}</b>{escape(axis["b"]["short"])}'
+        f'<small>{escape(axis["name"])}</small></li>'
+        for axis in axes
+    )
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for item in sorted(types.values(), key=lambda t: t["no"]):
+        groups.setdefault(item["group"], []).append(item)
+    sections = []
+    for group, items in groups.items():
+        cards = "".join(
+            f'<article id="type-{item["code"]}" class="hz-type{" is-focus" if item["code"] == focus else ""}">'
+            f'<div class="hz-type__code">{_code_letters(item["code"], axes)}<span>型</span></div>'
+            f'<h3>{escape(item["name"])}</h3><p>{escape(item["feature"])}</p></article>'
+            for item in items
+        )
+        sections.append(f'<section class="hz-types__group"><h2>{escape(group)}</h2>{cards}</section>')
+    return (
+        f'<div class="hz-types">{logo("hz-logo hz-logo--small")}'
+        "<h1>16タイプについて</h1>"
+        "<p class=\"hz-types__lede\">4つの軸それぞれで、どちらの傾向が強いかを1文字で表し、組み合わせた4文字がタイプ名になります。</p>"
+        f'<ul class="hz-legend">{legend}</ul>{"".join(sections)}</div>'
+    )
+
+
+def type_links(types: dict[str, Any], axes: list[dict[str, Any]], current: str) -> str:
+    """結果画面の16タイプ一覧。新しいタブで一覧ページの該当タイプを開く（結果は残る）。"""
+    links = "".join(
+        f'<a class="hz-typelink{" is-current" if item["code"] == current else ""}" '
+        f'href="?view=types&type={item["code"]}" target="_blank" rel="noopener">'
+        f'<span class="hz-typelink__code">{_code_letters(item["code"], axes)}</span>'
+        f'<span class="hz-typelink__name">{escape(item["name"])}</span></a>'
+        for item in sorted(types.values(), key=lambda t: t["no"])
+    )
+    return (
+        '<section class="hz-block hz-alltypes"><h2>16タイプ一覧</h2>'
+        '<p class="hz-alltypes__note">タイプ名を押すと、新しいタブで各タイプの特徴を確認できます。</p>'
+        f'<div class="hz-typelinks">{links}</div></section>'
+    )
+# ===== [BLOCK: TYPE_CATALOG] END =====
+
 # ===== [BLOCK: SPINE_CHART] START =====
 ROW_HEIGHT = 84
 TRACK_CENTER = 66
@@ -91,15 +170,8 @@ def progress_header(axes: list[dict[str, Any]], counts: list[int], current: int)
 
 
 def page_intro(axis: dict[str, Any], page_index: int, page_count: int) -> str:
-    opening = (
-        f'<div class="hz-opening">{logo("hz-logo hz-logo--small")}'
-        "<h1>組織診断</h1>"
-        "<p>数値管理、組織、業務フロー、会議の4軸から、自社の現状を16タイプに分類します。全40問、所要時間は約6分です。</p></div>"
-        if page_index == 0
-        else ""
-    )
     return (
-        f'{opening}<div class="hz-intro">'
+        '<div class="hz-intro">'
         f'<p>{page_index + 1} / {page_count} ページ</p>'
         f'<h2>{escape(axis["a"]["short"])}か、{escape(axis["b"]["short"])}か</h2>'
         "<p>理想ではなく、いまの実態に近いほうを選んでください。円が大きいほど、その傾向が強いことを表します。</p>"
@@ -160,9 +232,10 @@ def result_hero(diagnosis: dict[str, Any]) -> str:
 
 def result_body(diagnosis: dict[str, Any]) -> str:
     type_data = diagnosis["type"]
+    threshold = diagnosis["axes"][0]["threshold"]
     return (
         f'<section class="hz-block"><h2>組織の骨格図</h2>{spine(diagnosis["axes"])}'
-        '<p class="hz-spine__note">中央の目盛りが判定の境目です。30点以下で左側、31点以上で右側のタイプになります。</p></section>'
+        f'<p class="hz-spine__note">中央の目盛りが判定の境目です。{threshold}点以下で左側、{threshold + 1}点以上で右側のタイプになります。</p></section>'
         '<div class="hz-pair">'
         f'<section><h2>組織の強み</h2><p>{escape(type_data["strength"])}</p></section>'
         f'<section><h2>組織の弱み</h2><p>{escape(type_data["weakness"])}</p></section>'
