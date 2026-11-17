@@ -32,7 +32,9 @@ def landing_hero() -> str:
     return (
         f'<div class="hz-landing">{logo("hz-logo hz-logo--small")}'
         '<p class="hz-landing__pain">売上は上がっているのに、なぜか現場が疲弊している。</p>'
-        "<h1>「自社の組織ってどんな状態？」がわかる<span>16タイプ診断</span></h1>"
+        # 文節単位の塊にして、語の途中（「どん｜な」等）で改行されないようにする
+        '<h1><span class="hz-nb">「自社の組織って</span><span class="hz-nb">どんな状態？」</span>'
+        '<span class="hz-nb">がわかる</span><span class="hz-landing__big">16タイプ診断</span></h1>'
         '<p class="hz-landing__sub">数値管理、組織、業務フロー、会議コミュニケーションの4軸から、'
         "貴社の状態をMBTI風の16タイプに分類。痛みを伴う「組織の限界」と、次の一手（処方箋）を明らかにします。</p>"
         '<p class="hz-landing__meta"><span>全60問</span><span>所要時間：約8〜10分</span></p>'

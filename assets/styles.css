@@ -155,7 +155,8 @@ header[data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stStatu
 .hz-landing .hz-logo--small { margin-bottom: 32px; }
 .hz-landing__pain { display: inline-block; font-size: clamp(15px, 3.6vw, 18px); font-weight: 700; color: var(--hz-teal-ink); background: var(--hz-pale); padding: 6px 14px; border-radius: 6px; line-height: 1.6; }
 .stApp .hz-landing h1 { font-size: clamp(26px, 6.6vw, 40px); font-weight: 900; line-height: 1.45; margin: 16px 0 20px; word-break: auto-phrase; text-wrap: balance; }
-.hz-landing h1 span { display: block; font-size: clamp(38px, 10.5vw, 64px); line-height: 1.2; margin-top: 4px; background: linear-gradient(transparent 68%, rgba(123, 178, 175, .45) 68%); width: fit-content; }
+.hz-nb { display: inline-block; }
+.hz-landing__big { display: block; font-size: clamp(38px, 10.5vw, 64px); line-height: 1.2; margin-top: 4px; background: linear-gradient(transparent 68%, rgba(123, 178, 175, .45) 68%); width: fit-content; }
 .hz-landing__sub { font-size: 16px; line-height: 1.9; color: var(--hz-ink); word-break: auto-phrase; text-wrap: pretty; }
 .hz-landing__meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px !important; }
 .hz-landing__meta span { font-size: 14px; font-weight: 700; color: var(--hz-navy); border: 1px solid var(--hz-line); border-radius: 999px; padding: 4px 14px; }
