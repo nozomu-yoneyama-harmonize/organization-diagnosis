@@ -57,6 +57,6 @@ python -m pytest
 
 `assets/styles.css` の5段階ボタンは Streamlit 内部の HTML 構造に依存しているため、`requirements.txt` でバージョンを固定しています。更新するときは回答画面の表示を確認してください。
 
-## JavaScript への移行
+## JavaScript（Next.js / Vercel）への移行
 
-API 仕様と手順は `docs/migration-to-js.md` にあります。
+移行先の Next.js 版は `web/` にあります（起動方法・Vercel の設定は `web/README.md`）。移行が終わるまでは両方が動き、`data/` の設問・タイプは両方で共有しています。API 仕様は `docs/migration-to-js.md` にあります。

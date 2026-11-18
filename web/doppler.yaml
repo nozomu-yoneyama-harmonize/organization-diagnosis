@@ -1,0 +1,4 @@
+# Doppler の接続先。web/ で `doppler setup` を実行すると、この設定が使われる
+setup:
+  - project: organization-diagnosis
+    config: dev
