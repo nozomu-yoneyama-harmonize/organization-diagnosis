@@ -37,13 +37,34 @@ def _get_types() -> dict[str, Any]:
 def get_types() -> dict[str, Any]:
     """GET /api/v1/types 相当。16タイプの一覧（コードをキーにした dict）。"""
     return _get_types()
+
+
+@lru_cache(maxsize=1)
+def get_roles() -> dict[str, Any]:
+    """GET /api/v1/roles 相当。立場の選択肢と、立場別のリード文。"""
+    return json.loads((DATA_DIR / "role_leads.json").read_text(encoding="utf-8"))
+
+
+def resolve_lead(type_code: str, role_id: str | None) -> dict[str, Any]:
+    """立場に合わせたリード文。文言が未登録・立場が「その他」ならタイプ共通の説明文を返す。"""
+    roles = get_roles()
+    segment = next((r["segment"] for r in roles["roles"] if r["id"] == role_id), None)
+    text = roles["leads"].get(type_code, {}).get(segment, "") if segment else ""
+    if text:
+        return {"text": text, "segment": segment, "personalized": True}
+    return {"text": _get_types()[type_code]["feature"], "segment": None, "personalized": False}
 # ===== [BLOCK: DATA_LOADING] END =====
 
 
 # ===== [BLOCK: SUBMIT_DIAGNOSIS] START =====
-def submit_diagnosis(answers: dict[str, int]) -> dict[str, Any]:
-    """POST /api/v1/diagnoses 相当。保存に失敗しても診断結果は返す。"""
+def submit_diagnosis(answers: dict[str, int], role: str | None = None) -> dict[str, Any]:
+    """POST /api/v1/diagnoses 相当。保存に失敗しても診断結果は返す。
+
+    role は立場の id（data/role_leads.json の roles）。未知の値は未回答（None）として扱う。
+    """
     quiz = get_quiz()
+    if role not in {item["id"] for item in get_roles()["roles"]}:
+        role = None
     result = scoring.score_answers(quiz, answers)
     diagnosis_id = str(uuid.uuid4())
     try:
@@ -53,6 +74,7 @@ def submit_diagnosis(answers: dict[str, int]) -> dict[str, Any]:
             result["type_code"],
             {axis["id"]: axis["score"] for axis in result["axes"]},
             answers,
+            role,
         )
     except Exception:  # 保存失敗で利用者の結果表示を止めない
         logger.exception("failed to save diagnosis")
@@ -60,6 +82,8 @@ def submit_diagnosis(answers: dict[str, int]) -> dict[str, Any]:
         "id": diagnosis_id,
         "type": _get_types()[result["type_code"]],
         "axes": result["axes"],
+        "role": role,
+        "lead": resolve_lead(result["type_code"], role),
     }
 # ===== [BLOCK: SUBMIT_DIAGNOSIS] END =====
 

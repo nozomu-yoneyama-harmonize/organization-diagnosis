@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS diagnoses (
   quiz_version TEXT NOT NULL,
   type_code TEXT NOT NULL,
   axis_scores TEXT NOT NULL,
-  answers TEXT NOT NULL
+  answers TEXT NOT NULL,
+  respondent_role TEXT
 );
 CREATE TABLE IF NOT EXISTS events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,7 +46,16 @@ def _connect() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(DB_PATH)
     connection.executescript(SCHEMA)
+    _migrate(connection)
     return connection
+
+
+def _migrate(connection: sqlite3.Connection) -> None:
+    """既存の DB に後から追加した列を足す。"""
+    columns = {row[1] for row in connection.execute("PRAGMA table_info(diagnoses)")}
+    if "respondent_role" not in columns:
+        connection.execute("ALTER TABLE diagnoses ADD COLUMN respondent_role TEXT")
+        connection.commit()
 
 
 def _now() -> str:
@@ -60,10 +70,12 @@ def save_diagnosis(
     type_code: str,
     axis_scores: dict[str, int],
     answers: dict[str, int],
+    respondent_role: str | None = None,
 ) -> None:
     with closing(_connect()) as connection, connection:
         connection.execute(
-            "INSERT INTO diagnoses VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO diagnoses (id, created_at, quiz_version, type_code, axis_scores, answers, respondent_role)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?)",
             (
                 diagnosis_id,
                 _now(),
@@ -71,6 +83,7 @@ def save_diagnosis(
                 type_code,
                 json.dumps(axis_scores, ensure_ascii=False),
                 json.dumps(answers, ensure_ascii=False),
+                respondent_role,
             ),
         )
 

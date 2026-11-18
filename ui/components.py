@@ -181,6 +181,20 @@ def page_intro(axis: dict[str, Any], page_index: int, page_count: int) -> str:
     )
 
 
+def role_intro(question: str) -> str:
+    return (
+        '<div class="hz-intro">'
+        "<p>はじめに</p>"
+        f"<h2>{escape(question)}</h2>"
+        "<p>お立場に合わせて、結果の総評をお届けします。この回答は判定には影響しません。</p>"
+        "</div>"
+    )
+
+
+def role_alert() -> str:
+    return '<div class="hz-alert" role="alert">お立場を1つ選ぶと、設問へ進めます。</div>'
+
+
 def question_head(question: dict[str, Any], is_missing: bool) -> str:
     missing = '<em class="hz-q__missing">未回答</em>' if is_missing else ""
     return (
@@ -227,7 +241,7 @@ def result_hero(diagnosis: dict[str, Any]) -> str:
         f'<p class="hz-result__group">{escape(type_data["group"])}</p>'
         f'<div class="hz-code" aria-label="{type_data["code"]}型">{cells}<div class="hz-code__suffix"><b>型</b></div></div>'
         f'<h1>{escape(type_data["name"])}</h1>'
-        f'<p class="hz-result__lede">{escape(type_data["feature"])}</p>'
+        f'<p class="hz-result__lede">{escape(diagnosis["lead"]["text"])}</p>'
         "</div>"
     )
 
@@ -235,8 +249,14 @@ def result_hero(diagnosis: dict[str, Any]) -> str:
 def result_body(diagnosis: dict[str, Any]) -> str:
     type_data = diagnosis["type"]
     threshold = diagnosis["axes"][0]["threshold"]
+    # 立場別のリード文を出したときは、タイプ共通の説明文を「特徴」として残す
+    feature = (
+        f'<section class="hz-block"><h2>このタイプの特徴</h2><p>{escape(type_data["feature"])}</p></section>'
+        if diagnosis["lead"]["personalized"]
+        else ""
+    )
     return (
-        f'<section class="hz-block"><h2>組織の骨格図</h2>{spine(diagnosis["axes"])}'
+        f'{feature}<section class="hz-block"><h2>組織の骨格図</h2>{spine(diagnosis["axes"])}'
         f'<p class="hz-spine__note">中央の目盛りが判定の境目です。{threshold}点以下で左側、{threshold + 1}点以上で右側のタイプになります。</p></section>'
         '<div class="hz-pair">'
         f'<section><h2>組織の強み</h2><p>{escape(type_data["strength"])}</p></section>'

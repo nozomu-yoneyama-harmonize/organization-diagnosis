@@ -25,6 +25,7 @@ def init_state() -> None:
         "focus_type": None,
         "page": 0,
         "answers": {},
+        "role": None,
         "missing": [],
         "attempt": 0,
         "diagnosis": None,
@@ -71,7 +72,7 @@ def render_landing() -> None:
     st.html(ui.landing_hero())
     with st.container(key="landing_actions"):
         if st.button("診断をスタートする（無料）", type="primary", key="start", width="stretch"):
-            go("quiz")
+            go("role")
         if st.button("16タイプについて知る", key="about_types", width="stretch"):
             st.session_state.focus_type = None
             go("types")
@@ -86,12 +87,44 @@ def render_types(quiz: dict[str, Any]) -> None:
     st.html(ui.type_catalog(backend.get_types(), quiz["axes"], focus))
     with st.container(key="types_actions"):
         if st.button("診断をスタートする（無料）", type="primary", key="start_from_types", width="stretch"):
-            go("quiz")
+            go("role")
         if st.button("トップに戻る", key="to_top", type="tertiary", width="stretch"):
             go("intro")
     selector = f"#type-{focus}" if focus else "#hz-none"
     st.html(ui.scroll_script(selector, f"types-{focus}"), unsafe_allow_javascript=True)
 # ===== [BLOCK: SCREEN_TYPES] END =====
+
+
+# ===== [BLOCK: SCREEN_ROLE] START =====
+def render_role() -> None:
+    """診断の前に回答者の立場を聞く。結果のリード文の出し分けに使う。"""
+    roles = backend.get_roles()
+    labels = {item["id"]: item["label"] for item in roles["roles"]}
+    ids = list(labels)
+    saved = st.session_state.role
+    st.html(ui.role_intro(roles["question"]))
+    with st.container(key="role_card"):
+        choice = st.radio(
+            roles["question"],
+            ids,
+            index=None if saved not in ids else ids.index(saved),
+            format_func=labels.get,
+            label_visibility="collapsed",
+            key="role_choice",
+        )
+    if st.session_state.missing:
+        st.html(ui.role_alert())
+    with st.container(horizontal=True, key="nav"):
+        if st.button("トップに戻る", key="role_back", width="stretch"):
+            go("intro")
+        if st.button("設問へ進む", type="primary", key="role_next", width="stretch"):
+            if choice is None:
+                st.session_state.missing = ["role"]
+                st.rerun()
+            st.session_state.role = choice
+            go("quiz")
+    st.html(ui.scroll_script("#hz-none", "role"), unsafe_allow_javascript=True)
+# ===== [BLOCK: SCREEN_ROLE] END =====
 
 
 # ===== [BLOCK: SCREEN_QUIZ] START =====
@@ -155,7 +188,7 @@ def render_quiz(quiz: dict[str, Any]) -> None:
 def finish_quiz(quiz: dict[str, Any]) -> None:
     """全問そろっていれば判定して結果へ。漏れがあればそのページへ戻す。"""
     try:
-        st.session_state.diagnosis = backend.submit_diagnosis(st.session_state.answers)
+        st.session_state.diagnosis = backend.submit_diagnosis(st.session_state.answers, st.session_state.role)
     except AnswerValidationError as error:
         problem_ids = error.missing + error.invalid
         first = next(q for q in quiz["questions"] if q["id"] in problem_ids)
@@ -236,7 +269,11 @@ def main() -> None:
         render_result(quiz)
     elif phase == "types":
         render_types(quiz)
+    elif phase == "role":
+        render_role()
     elif phase == "quiz":
+        if st.session_state.role is None:
+            go("role")
         render_quiz(quiz)
     else:
         render_landing()

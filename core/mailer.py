@@ -61,13 +61,21 @@ def _axis_line(axis: dict[str, Any]) -> str:
     return f"{axis['name']}：{axis['score']}点（{axis['min']}〜{axis['max']}点）　判定 {chosen['code']}（{chosen['full']}）"
 
 
+def _lead(diagnosis: dict[str, Any]) -> str:
+    """立場別の総評。未登録なら空文字（その場合は特徴だけを載せる）。"""
+    lead = diagnosis.get("lead") or {}
+    return lead.get("text", "") if lead.get("personalized") else ""
+
+
 def _plain_body(diagnosis: dict[str, Any], booking_url: str) -> str:
     item = diagnosis["type"]
+    lead = _lead(diagnosis)
     axes = "\n".join(_axis_line(axis) for axis in diagnosis["axes"])
     return (
         "Harmonize 組織診断の結果をお送りします。\n\n"
         f"{item['code']}型：{item['name']}\n{item['group']}\n\n"
-        f"■ 組織傾向の特徴\n{item['feature']}\n\n"
+        + (f"■ 総評\n{lead}\n\n" if lead else "")
+        + f"■ 組織傾向の特徴\n{item['feature']}\n\n"
         f"■ 4軸のスコア\n{axes}\n\n"
         f"■ 組織の強み\n{item['strength']}\n\n"
         f"■ 組織の弱み\n{item['weakness']}\n\n"
@@ -78,7 +86,8 @@ def _plain_body(diagnosis: dict[str, Any], booking_url: str) -> str:
 
 def _html_body(diagnosis: dict[str, Any], booking_url: str) -> str:
     item = diagnosis["type"]
-    heading = 'style="color:#173156;font-size:16px;margin:28px 0 8px"'
+    lead = _lead(diagnosis)
+    heading ='style="color:#173156;font-size:16px;margin:28px 0 8px"'
     paragraph = 'style="margin:0;line-height:1.8"'
     rows = "".join(
         f'<tr><td style="padding:6px 12px 6px 0">{escape(axis["name"])}</td>'
@@ -93,7 +102,8 @@ def _html_body(diagnosis: dict[str, Any], booking_url: str) -> str:
         f'<p style="margin:16px 0 0;color:#5a6b78">{escape(item["group"])}</p>'
         f'<h1 style="color:#173156;font-size:40px;line-height:1.2;margin:4px 0">{item["code"]}型</h1>'
         f'<p style="margin:0;color:#173156;font-size:22px;font-weight:bold">{escape(item["name"])}</p>'
-        f"<h2 {heading}>組織傾向の特徴</h2><p {paragraph}>{escape(item['feature'])}</p>"
+        + (f"<h2 {heading}>総評</h2><p {paragraph}>{escape(lead)}</p>" if lead else "")
+        + f"<h2 {heading}>組織傾向の特徴</h2><p {paragraph}>{escape(item['feature'])}</p>"
         f'<h2 {heading}>4軸のスコア</h2><table style="border-collapse:collapse">{rows}</table>'
         f"<h2 {heading}>組織の強み</h2><p {paragraph}>{escape(item['strength'])}</p>"
         f"<h2 {heading}>組織の弱み</h2><p {paragraph}>{escape(item['weakness'])}</p>"

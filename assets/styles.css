@@ -81,7 +81,7 @@ header[data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stStatu
 
 /* ===== [BLOCK: QUESTION] START ===== */
 .hz-intro { padding: 20px 0 8px; }
-.hz-intro h2 { font-size: clamp(28px, 7vw, 38px); font-weight: 900; margin: 4px 0 12px; }
+.hz-intro h2 { font-size: clamp(24px, 6vw, 38px); word-break: auto-phrase; text-wrap: balance; font-weight: 900; margin: 4px 0 12px; }
 .hz-intro p { color: var(--hz-muted); font-size: 15px; line-height: 1.75; }
 [class*="st-key-card_"] { padding: 22px 0 14px; border-bottom: 1px solid var(--hz-line); gap: 10px; }
 .hz-q__head { display: flex; gap: 10px; align-items: baseline; margin-bottom: 12px; }
@@ -208,6 +208,18 @@ header[data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stStatu
 .hz-typelink__name { font-size: 14px; line-height: 1.5; font-weight: 500; }
 @media (max-width: 420px) { .hz-typelinks { grid-template-columns: 1fr; } }
 /* ===== [BLOCK: TYPES] END ===== */
+
+/* ===== [BLOCK: ROLE] START ===== */
+/* 立場の選択。選択肢を押しやすい行カードにする（Streamlit の DOM に依存） */
+.stApp .st-key-role_card { margin: 8px 0 16px; }
+.stApp .st-key-role_choice [data-testid="stRadioGroup"] { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.stApp .st-key-role_choice [data-testid="stRadioOption"] { width: 100%; margin: 0; padding: 16px 18px; border: 1px solid var(--hz-line); border-radius: 12px; background: #fff; cursor: pointer; transition: border-color .12s ease-out, background-color .12s ease-out; }
+@media (hover: hover) { .stApp .st-key-role_choice [data-testid="stRadioOption"]:hover { border-color: var(--hz-teal); } }
+.stApp .st-key-role_choice [data-testid="stRadioOption"]:has(input:checked) { border: 2px solid var(--hz-navy); background: var(--hz-pale); padding: 15px 17px; }
+.stApp .st-key-role_choice [data-testid="stRadioOption"]:has(input:focus-visible) { outline: 3px solid var(--hz-teal); outline-offset: 2px; }
+.stApp .st-key-role_choice [data-testid="stRadioOption"] p { font-size: 16px; font-weight: 700; color: var(--hz-ink); }
+.hz-block > p { font-size: 16px; line-height: 1.9; }
+/* ===== [BLOCK: ROLE] END ===== */
 
 /* ===== [BLOCK: RESPONSIVE_AND_MOTION] START ===== */
 @media (max-width: 560px) {

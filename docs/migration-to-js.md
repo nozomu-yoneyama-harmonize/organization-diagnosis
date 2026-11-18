@@ -1,5 +1,7 @@
 # JavaScript バックエンドへの移行設計
 
+> **進捗（2026-11-17）**: `web/` に Next.js 版を実装済み（Supabase + Resend、Vercel 向け）。手順 1・2・4 に相当。Streamlit を JS の API につなぐ手順 3 は省略し、Vercel 上で動作を確認してから Streamlit 版を削除する。
+
 ## 方針
 
 判定ロジックと保存処理は、すでに画面（Streamlit）から切り離してあります。
@@ -33,17 +35,18 @@
 | `POST /api/v1/diagnoses` | `submit_diagnosis()` | 回答を送信し、判定結果を取得 |
 | `POST /api/v1/diagnoses/{id}/events` | `record_event()` | CTA クリックなどを記録 |
 | `POST /api/v1/diagnoses/{id}/email` | `send_result_email()` | 結果をメールで送信 |
-| `POST /api/v1/leads` | `create_lead()` | 現在は未使用（予約は Timerex で受付） |
+| `POST /api/v1/leads` | `create_lead()` | 現在は未使用（予約は Timerex で受付）。Next.js 版では実装していない |
 
 ### POST /api/v1/diagnoses
 
 リクエスト:
 
 ```json
-{ "answers": { "Q01": 1, "Q02": 4, "Q60": 3 } }
+{ "answers": { "Q01": 1, "Q02": 4, "Q60": 3 }, "role": "successor" }
 ```
 
 `answers` には Q01〜Q60 の全問が必要です。値は 1〜5 の整数です。
+`role` は回答者の立場（`founder` / `successor` / `manager` / `other`。`data/role_leads.json` の `roles`）。判定には使わず、結果冒頭のリード文の出し分けと集計に使います。未知の値は `null` として保存します。
 
 レスポンス `201`:
 
@@ -62,7 +65,9 @@
       "a": { "code": "D", "short": "データ", "full": "データ・定量" },
       "b": { "code": "I", "short": "直感", "full": "直感・経験" }
     }
-  ]
+  ],
+  "role": "successor",
+  "lead": { "text": "…", "segment": "successor", "personalized": true }
 }
 ```
 
@@ -86,7 +91,7 @@
 { "email": "yamada@example.com" }
 ```
 
-レスポンスは `202`。アドレスは保存しません。入力エラーは `422`、未設定や送信失敗は `503` を返します。第三者のアドレス宛てに大量送信されないよう、診断ごとの送信回数をサーバー側で制限します（プロトタイプは画面側で3通まで）。
+レスポンスは `202`。アドレスは保存しません。入力エラーは `422`、未設定や送信失敗は `503` を返します。第三者のアドレス宛てに大量送信されないよう、診断ごとの送信回数をサーバー側で制限します（Next.js 版は3通まで、超えると `429`。プロトタイプは画面側で制限）。改ざんを防ぐため、メールの内容は画面から受け取らず、保存済みの回答から組み立て直します。診断が保存されていない場合は `404` です。
 
 ### POST /api/v1/leads
 

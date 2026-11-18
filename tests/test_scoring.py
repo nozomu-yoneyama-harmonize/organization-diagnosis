@@ -130,3 +130,64 @@ def test_missing_settings_and_send_failure_are_reported(tmp_path, monkeypatch):
     monkeypatch.setattr(mailer, "send", refused)
     assert backend.send_result_email(diagnosis, "a@example.com", BOOKING)["error"] == "send_failed"
 # ===== [BLOCK: RESULT_EMAIL] END =====
+
+
+# ===== [BLOCK: ROLE_LEADS] START =====
+def with_lead(monkeypatch, code, segment, text):
+    roles = json.loads(json.dumps(backend.get_roles()))
+    roles["leads"][code][segment] = text
+    monkeypatch.setattr(backend, "get_roles", lambda: roles)
+
+
+def test_role_leads_cover_all_types_and_segments():
+    roles = backend.get_roles()
+    assert [r["id"] for r in roles["roles"]] == ["founder", "successor", "manager", "other"]
+    assert set(roles["leads"]) == set(backend.get_types())
+    segments = {r["segment"] for r in roles["roles"] if r["segment"]}
+    assert segments == set(roles["segments"])
+    assert all(set(item) == segments for item in roles["leads"].values())
+    assert all(text for item in roles["leads"].values() for text in item.values())
+
+
+def test_lead_switches_by_role_and_falls_back_to_feature(monkeypatch):
+    leads = backend.get_roles()["leads"]["DHST"]
+    assert leads["founder"] != leads["successor"] != leads["manager"]
+    for segment in ("founder", "successor", "manager"):
+        assert backend.resolve_lead("DHST", segment) == {"text": leads[segment], "segment": segment, "personalized": True}
+    with_lead(monkeypatch, "DHST", "founder", "")
+    feature = backend.get_types()["DHST"]["feature"]
+    for role in ("founder", "other", None, "unknown"):  # 文言が空・その他・未選択は共通文
+        assert backend.resolve_lead("DHST", role) == {"text": feature, "segment": None, "personalized": False}
+
+
+def test_role_is_saved_and_unknown_role_is_dropped(tmp_path, monkeypatch):
+    monkeypatch.setattr(storage, "DB_PATH", tmp_path / "test.db")
+    backend.submit_diagnosis(to_answers([1] * 60), "founder")
+    assert backend.submit_diagnosis(to_answers([1] * 60), "<script>")["role"] is None
+    columns, rows = storage.fetch_table("diagnoses")
+    assert [row[columns.index("respondent_role")] for row in rows] == ["founder", None]
+
+
+def test_old_database_gets_role_column(tmp_path, monkeypatch):
+    import sqlite3
+    path = tmp_path / "old.db"
+    with sqlite3.connect(path) as connection:
+        connection.execute(
+            "CREATE TABLE diagnoses (id TEXT PRIMARY KEY, created_at TEXT NOT NULL, quiz_version TEXT NOT NULL,"
+            " type_code TEXT NOT NULL, axis_scores TEXT NOT NULL, answers TEXT NOT NULL)"
+        )
+    connection.close()
+    monkeypatch.setattr(storage, "DB_PATH", path)
+    backend.submit_diagnosis(to_answers([1] * 60), "manager")
+    columns, rows = storage.fetch_table("diagnoses")
+    assert rows[0][columns.index("respondent_role")] == "manager"
+
+
+def test_mail_includes_personalized_lead(tmp_path, monkeypatch):
+    with_lead(monkeypatch, "IFSR", "founder", "創業者向けの総評")
+    monkeypatch.setattr(storage, "DB_PATH", tmp_path / "test.db")
+    diagnosis = backend.submit_diagnosis(to_answers([5] * 30 + [1] * 15 + [5] * 15), "founder")
+    message = mailer.build_result_message(diagnosis, "a@example.com", BOOKING, SETTINGS.sender)
+    for body in (message.get_body(("plain",)).get_content(), message.get_body(("html",)).get_content()):
+        assert "総評" in body and "創業者向けの総評" in body and diagnosis["type"]["feature"] in body
+# ===== [BLOCK: ROLE_LEADS] END =====
